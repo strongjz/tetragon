@@ -5,6 +5,7 @@ package option
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -94,6 +95,8 @@ const (
 	KeyExposeKernelAddresses = "expose-kernel-addresses"
 
 	KeyGenerateDocs = "generate-docs"
+
+	KeyCgroupRate = "cgroup-rate"
 )
 
 func ReadAndSetFlags() error {
@@ -174,6 +177,7 @@ func ReadAndSetFlags() error {
 
 	Config.ExposeKernelAddresses = viper.GetBool(KeyExposeKernelAddresses)
 
+	Config.CgroupRate = parseCgroupRate(viper.GetString(KeyCgroupRate))
 	return nil
 }
 
@@ -183,6 +187,50 @@ func ParseMetricsLabelFilter(labels string) map[string]interface{} {
 		result[label] = nil
 	}
 	return result
+}
+
+type CgroupRate struct {
+	Events   uint64
+	Interval uint64
+}
+
+func parseCgroupRate(rate string) CgroupRate {
+	empty := CgroupRate{}
+
+	if rate == "" {
+		return empty
+	}
+
+	s := strings.Split(rate, ",")
+	if len(s) != 2 {
+		logger.GetLogger().Warnf("failed to parse cgroup rate '%s'", rate)
+		return empty
+	}
+
+	var interval time.Duration
+	var events int
+	var err error
+
+	if len(s[0]) > 0 {
+		events, err = strconv.Atoi(s[0])
+		if err != nil {
+			logger.GetLogger().Warnf("failed to parse cgroup rate '%s' : %w", rate, err)
+			return empty
+		}
+	}
+
+	if len(s[1]) > 0 {
+		interval, err = time.ParseDuration(s[1])
+		if err != nil {
+			logger.GetLogger().Warnf("failed to parse cgroup rate '%s' : %w", rate, err)
+			return empty
+		}
+	}
+
+	return CgroupRate{
+		Events:   uint64(events),
+		Interval: uint64(interval),
+	}
 }
 
 func AddFlags(flags *pflag.FlagSet) {
@@ -283,4 +331,6 @@ func AddFlags(flags *pflag.FlagSet) {
 	flags.Bool(KeyExposeKernelAddresses, false, "Expose real kernel addresses in events stack traces")
 
 	flags.Bool(KeyGenerateDocs, false, "Generate documentation in YAML format to stdout")
+
+	flags.String(KeyCgroupRate, "", "Base sensor events cgroup rate (events,interval)")
 }
