@@ -86,6 +86,12 @@ func NewCgroupRate(ctx context.Context,
 	return handle
 }
 
+func NewTestCgroupRate(hash *program.Map,
+	opts *option.CgroupRate) *CgroupRate {
+
+	return newCgroupRate(hash, opts)
+}
+
 func (r *CgroupRate) AddListener(listener Listener) {
 	r.listeners[listener] = struct{}{}
 }
