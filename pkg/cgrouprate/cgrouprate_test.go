@@ -313,3 +313,26 @@ func TestCheckThrottle(t *testing.T) {
 		}
 	}
 }
+
+func TestParseCgroupRate(t *testing.T) {
+	var opt option.CgroupRate
+
+	// ok
+	opt = option.ParseCgroupRate("1,1s")
+	assert.Equal(t, option.CgroupRate{Events: 1, Interval: 1000000000}, opt)
+
+	opt = option.ParseCgroupRate("1,1m")
+	assert.Equal(t, option.CgroupRate{Events: 1, Interval: 60000000000}, opt)
+
+	// fail
+	empty := option.CgroupRate{Events: 0, Interval: 0}
+
+	opt = option.ParseCgroupRate("10")
+	assert.Equal(t, empty, opt)
+
+	opt = option.ParseCgroupRate("sure,1s")
+	assert.Equal(t, empty, opt)
+
+	opt = option.ParseCgroupRate("1,nope")
+	assert.Equal(t, empty, opt)
+}
